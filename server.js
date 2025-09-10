@@ -61,6 +61,23 @@ app.post('/users', (req, res) => {
   res.send({msg: 'A felhasználó sikeresen regisztált!'})
 });
 
+
+//POST check user login
+
+app.post('/users/login', (req,res)=>{
+  let {email, password} = req.body;
+  let loggedUser = {}; 
+  users.forEach(user => {
+    if(user.email == email && user.password==password){
+        loggedUser = user;
+        return
+    }
+  })
+  
+  return res.send(loggedUser);
+})
+
+
 //DELETE user by id
 
 app.delete('/users/:id', (req, res) => {
@@ -75,7 +92,7 @@ app.delete('/users/:id', (req, res) => {
   return res.status(400).send({msg: 'Nincs ilyen azonosítójű felhasználó'})
 });
 
-//UPDATE userby id
+//UPDATE user by id
 
 app.patch('/users/:id', (req, res) => {
   let id = req.params.id;
@@ -89,6 +106,25 @@ app.patch('/users/:id', (req, res) => {
   }
   return res.status(400).send('Nincs ilyen azonosítójú felhasználó')
 });
+
+
+/* HF 
+
+app.patch('/users/profile', (req,res)=>{})
+
+lehessen módosítani a nevet és az email címet, arra viszont kell figyelni, hogy az emailt ne lehessen már regisztált e-mail címre váltani.
+
+app.patch('users/password', (req,res) => jelszó módosítása, és legyen meg a validációk, biztonsági kritériumnak megfelelés és a jelenlegi jelszó is helyes 
+
+
+  app.get('users/profile/:id, (req,res) =>{
+    }
+
+    profiladatok betöltése a megadott ID szerint
+*/
+
+
+
 
 app.listen(3000);
 
