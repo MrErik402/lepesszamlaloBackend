@@ -10,7 +10,7 @@ Content-Type: application/json
 
 ### GET one user
 
-GET http://localhost:3000/users/3
+GET http://localhost:3000/users/1
 Content-Type: application/json
 
 ### POST new user

@@ -108,20 +108,54 @@ app.patch('/users/:id', (req, res) => {
 });
 
 
-/* HF 
+// Felhasználói adatok módosítása 
 
-app.patch('/users/profile', (req,res)=>{})
+app.patch("/users/profile", (req, res) => {
+  const { id, name, email } = req.body;
+  const user = users.find(u => u.id == id);
+  if (!user) return res.status(404).json({ message: "Felhasználó nem található" });
 
-lehessen módosítani a nevet és az email címet, arra viszont kell figyelni, hogy az emailt ne lehessen már regisztált e-mail címre váltani.
+  // email ellenőrzés
+  if (email && users.some(u => u.email === email && u.id !== id)) {
+    return res.status(400).json({ message: "Ez az e-mail cím már foglalt" });
+  }
 
-app.patch('users/password', (req,res) => jelszó módosítása, és legyen meg a validációk, biztonsági kritériumnak megfelelés és a jelenlegi jelszó is helyes 
+  if (name) user.name = name;
+  if (email) user.email = email;
 
+  res.json({ message: "Profil frissítve", user: { id: user.id, name: user.name, email: user.email } });
+});
 
-  app.get('users/profile/:id, (req,res) =>{
-    }
+// Jelszó módosítása 
 
-    profiladatok betöltése a megadott ID szerint
-*/
+app.patch("/users/password", (req, res) => {
+  const { id, oldPassword, newPassword } = req.body;
+  const passwdRegExp = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
+
+  const user = users.find(u => u.id == id);
+  if (!user) return res.status(404).json({ message: "Felhasználó nem található" });
+
+  // régi jelszó ellenőrzés
+  if (user.password !== oldPassword) {
+    return res.status(400).json({ message: "A jelenlegi jelszó hibás" });
+  }
+
+  // új jelszó validáció
+  if (!passwdRegExp.test(newPassword)) {
+    return res.status(400).json({ message: "A jelszó nem felel meg a biztonsági feltételeknek" });
+  }
+
+  user.password = newPassword;
+  res.json({ message: "Jelszó sikeresen módosítva" });
+});
+
+//Felhasználó lekérdezése ID alapján
+
+app.get("/users/profile/:id", (req, res) => {
+  const user = users.find(u => u.id == req.params.id);
+  if (!user) return res.status(404).json({ message: "Felhasználó nem található" });
+  res.json({ id: user.id, name: user.name, email: user.email });
+});
 
 
 
