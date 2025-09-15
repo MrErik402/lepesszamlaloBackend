@@ -14,12 +14,13 @@ app.use(express.urlencoded({ extended: true })) // req.body-n keresztül átmenj
 /*Emailcím, felhasználónév, jelszó */
 
 
-let users = [
-
-];
+let users = [];
+let steps = [];
 const USERS_FILE = path.join(__dirname, 'users.json')
+const STEPS_FILE = path.join(__dirname, 'steps.json')
 loadUsers()
-// ENDPOINTS
+loadSteps()
+// ENDPOINTS . USER
 
 app.get('/', (req, res) => {
   res.send('Backend API by Bajai SZC Türr István Technikum - 13.A Szoftverfejlesztő')
@@ -91,6 +92,57 @@ app.delete('/users/:id', (req, res) => {
   }
   return res.status(400).send({msg: 'Nincs ilyen azonosítójű felhasználó'})
 });
+// Felhasználói adatok módosítása 
+
+app.patch("/users/profile", (req, res) => {
+  const {id, name, email } = req.body;
+  console.log(req.body)
+  let idx = users.findIndex(user => user.email == email && user.id != id);
+  if(idx>-1){
+    return res.status(400).send({message: "Ez az e-mail cím már foglalt!"})
+  }
+
+  idx = users.findIndex(user => user.id == id)
+  console.log(idx)
+  if(idx==-1){
+    return res.status(400).send({message: "Nem található a felhasználó"})
+  }
+  users[idx].name = name
+  users[idx].email = email
+
+  saveUsers();
+
+  return res.status(200).send({message: "A profil sikeresen módosítva!"});
+});
+
+// Jelszó módosítása 
+
+app.patch("/users/password", (req, res) => {
+  const { id, oldPassword, newPassword } = req.body;
+  let idx = users.findIndex(user => user.id == id)
+
+  if(idx==-1){
+    return res.status(400).send({message: "Nem található a felhasználó"})
+  }
+
+  if(users[idx].password != oldPassword){
+    return res.status(400).send({message: "A megadott jelenlegi jelszó nem megfelelő"})
+  }
+
+  users[idx].password = newPassword;
+  saveUsers()
+
+  return res.send({message: "A jelszó sikeresen módosítva"})
+  })
+
+//Felhasználó lekérdezése ID alapján
+
+app.get("/users/profile/:id", (req, res) => {
+  const user = users.find(u => u.id == req.params.id);
+  if (!user) return res.status(404).json({ message: "Felhasználó nem található" });
+  res.json({ id: user.id, name: user.name, email: user.email });
+});
+
 
 //UPDATE user by id
 
@@ -108,76 +160,135 @@ app.patch('/users/:id', (req, res) => {
 });
 
 
-// Felhasználói adatok módosítása 
 
-app.patch("/users/profile", (req, res) => {
-  const { id, name, email } = req.body;
-  const user = users.find(u => u.id == id);
-  if (!user) return res.status(404).json({ message: "Felhasználó nem található" });
+// -----------------------------ENDPOINT - STEP---------------------------------
 
-  // email ellenőrzés
-  if (email && users.some(u => u.email === email && u.id !== id)) {
-    return res.status(400).json({ message: "Ez az e-mail cím már foglalt" });
+// GET all steps by userID
+
+app.get("/steps/user/:userID", (req,res) =>{
+  let userStep = []
+  let data = req.params;
+  let id = req.params.userID; //Itt a hátsó .id-nek a neve meg kell egyezzen a getbe lévő :után
+  let idx = steps.findIndex(step => step.userID == id); 
+  if (idx > -1) {
+    for (let i = 0; i < steps.length; i++) {
+      if(steps[i].userID == data.userID){
+        userStep.push(steps[i])
+      }
+    }
+    res.send(userStep)
+   
   }
+  return res.status(400).send({msg: 'Nincs ilyen felhasználó'})
+})
 
-  if (name) user.name = name;
-  if (email) user.email = email;
-
-  res.json({ message: "Profil frissítve", user: { id: user.id, name: user.name, email: user.email } });
-});
-
-// Jelszó módosítása 
-
-app.patch("/users/password", (req, res) => {
-  const { id, oldPassword, newPassword } = req.body;
-  const passwdRegExp = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
-
-  const user = users.find(u => u.id == id);
-  if (!user) return res.status(404).json({ message: "Felhasználó nem található" });
-
-  // régi jelszó ellenőrzés
-  if (user.password !== oldPassword) {
-    return res.status(400).json({ message: "A jelenlegi jelszó hibás" });
+// GET one step by stepID
+app.get("/steps/:id", (req,res)=>{
+  let data = req.params;
+  let id = req.params.id; //Itt a hátsó .id-nek a neve meg kell egyezzen a getbe lévő :után
+  let idx = steps.findIndex(step => step.id == id); 
+  if (idx > -1) {
+    res.send(steps[idx])
   }
-
-  // új jelszó validáció
-  if (!passwdRegExp.test(newPassword)) {
-    return res.status(400).json({ message: "A jelszó nem felel meg a biztonsági feltételeknek" });
+  return res.status(400).send({msg: 'Nincs ilyen lépés'})
+})
+// POST new step
+app.post("/steps/user/:userID", (req,res)=>{
+  let data = req.body;
+  data.id = getNextID("steps")
+  steps.push(data)
+  saveSteps()
+  res.send({msg: 'A lépés sikeresen hozzáadva'})
+})
+// PATCH step by stepID
+app.patch("/steps/:id", (req,res)=>{
+  const {id, date, count } = req.body;
+  let idx = steps.findIndex(step => step.id == id)
+  if(idx==-1){
+    return res.status(400).send({message: "Nem található a lépés"})
   }
+  steps[idx].date = date
+  steps[idx].count = count
 
-  user.password = newPassword;
-  res.json({ message: "Jelszó sikeresen módosítva" });
-});
+  saveSteps();
 
-//Felhasználó lekérdezése ID alapján
+  return res.status(200).send({message: "A lépés sikeresen módosítva!"});
+})
+// DELETE step by stepID
+app.delete("/steps/:id", (req,res)=>{
+  let id = req.params.id;
+  let idx = steps.findIndex(step => step.id == id);
+  if (idx > -1) {
+    steps.splice(idx, 1);
+    saveSteps()
+    return res.send({msg: 'Lépés törölve'});
+  }
+  return res.status(400).send({msg: 'Nincs ilyen azonosítójű lépés'})
+})
+// DELETE all steps by userID
+app.delete("/steps/user/:userID",(req,res)=>{
+  let id = req.params.userID;
 
-app.get("/users/profile/:id", (req, res) => {
-  const user = users.find(u => u.id == req.params.id);
-  if (!user) return res.status(404).json({ message: "Felhasználó nem található" });
-  res.json({ id: user.id, name: user.name, email: user.email });
-});
+  let data = req.params
+  let arrayCount = steps.length;
+  let idx = steps.findIndex(step => step.userID == id);
+  if (idx > -1) {
+    for (let i = 0; i < arrayCount; i++) {
+      if(steps[i].userID == data.userID){
+        steps.splice(idx, 1);
+        saveSteps()
+      }
+    }
+    return res.send({msg: 'Lépések törölve a felhasználótól'});
+  }
+  return res.status(400).send({msg: 'Nincs ilyen azonosítójű lépés'})
+})
 
-
-
+app.delete("/steps", (_req,res)=>{
+  steps = []
+  saveSteps()
+  res.send({message: "Sikeresen törölve az összes lépés!"})
+})
 
 app.listen(3000);
 
 
 //Othet functions
 
-function getNextID() {
-  let nextID = 1;
-  if (users.length === 0) {
-    return nextID;
+function getNextID(type) {
+  let nextID = 1
+  let maxindex = 0
+  switch (type) {
+    case "steps":
+      nextID = 1;
+      if (steps.length === 0) {
+        return nextID;
+      }
+      maxindex = 0;
+      for (let i = 1; i < steps.length; i++) {
+        if (steps[i].id > steps[maxindex].id) {
+          maxindex = i;
+        }
+      }
+    
+      return steps[maxindex].id + 1;
+      
+  
+    default:
+      nextID = 1;
+      if (users.length === 0) {
+        return nextID;
+      }
+      maxindex = 0;
+      for (let i = 1; i < users.length; i++) {
+        if (users[i].id > users[maxindex].id) {
+          maxindex = i;
+        }
+      }
+    
+      return users[maxindex].id + 1;
   }
-  let maxindex = 0;
-  for (let i = 1; i < users.length; i++) {
-    if (users[i].id > users[maxindex].id) {
-      maxindex = i;
-    }
-  }
-
-  return users[maxindex].id + 1;
+  
 }
 
 function loadUsers() {
@@ -206,4 +317,22 @@ function isEmailExists(email){
       return;
   })
   return exists
+}
+
+function loadSteps(){
+  if (fs.existsSync(STEPS_FILE)) {
+    const raw = fs.readFileSync(STEPS_FILE);
+    try {
+      steps = JSON.parse(raw)
+    } catch (error) {
+      console.log("Itt hibára futott a hadművelett, ebből beolvasás nem lesz")
+      steps = []
+    }
+  } else {
+    saveSteps()
+  }
+}
+
+function saveSteps(){
+  fs.writeFileSync(STEPS_FILE, JSON.stringify(steps));
 }

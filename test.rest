@@ -49,3 +49,51 @@ Content-Type: application/json
     "email": "admin",
     "password": "admin"
 }
+
+
+### POST step
+
+POST http://localhost:3000/steps/user/1
+Content-Type: application/json
+
+{
+    "userID": 1,
+    "date":"2023-05-16",
+    "count":17
+}
+
+### DELETE one step /steps/:id
+
+DELETE http://localhost:3000/steps/4
+Content-Type: application/json
+
+### GET all step by user id
+
+GET http://localhost:3000/steps/user/2
+Content-Type: application/json
+
+### GET one step by step id
+GET http://localhost:3000/steps/30
+Content-Type: application/json
+
+### DELETE all step
+
+DELETE http://localhost:3000/steps/user/1
+Content-Type: application/json
+
+### DELETE ALL STEP FROM ALL USER
+
+DELETE http://localhost:3000/steps
+Content-Type: application/json
+
+
+### UPDATE step by id
+
+PATCH http://localhost:3000/steps/30
+Content-Type: application/json
+
+{
+    "id": 30,
+    "date": "2025-01-01",
+    "count": 200
+}
